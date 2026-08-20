@@ -9,7 +9,7 @@ from typing import List
 
 import agenten.agent1_bewertung as a1
 import agenten.agent2_drawdown as a2
-import agenten.agent3_qualitaet as a3
+import agenten.agent3_dip as a3
 from kern import version
 from kern.typen import Befund, Zustand
 
@@ -64,7 +64,7 @@ def zeige_ergebnis(e: dict) -> None:
     print(f"{'='*62}")
     _zeige_befunde("Agent 1 – Bewertung", e["agent1"])
     _zeige_befunde("Agent 2 – Drawdown", e["agent2"])
-    _zeige_befunde("Agent 3 – Qualität", e.get("agent3", []))
+    _zeige_befunde("Agent 3 – Dip-Diagnose", e.get("agent3", []))
 
 
 def speichere(e: dict) -> None:
