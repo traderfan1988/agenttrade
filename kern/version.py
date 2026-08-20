@@ -6,7 +6,7 @@ Nach jeder Änderung an der Scoring-Logik:
 und den Hash in SCORING_COMMIT eintragen.
 Ohne diesen Stempel ist --review unbrauchbar (Scores mischen Logiken).
 """
-SCORING_COMMIT = "dev"
+SCORING_COMMIT = "db4597a"
 SCORING_VERSION = "0.1.0"
 
 
