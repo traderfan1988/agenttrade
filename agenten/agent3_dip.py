@@ -23,7 +23,7 @@ SCHWELLEN = {
     "hist_fenster_jahre": 5,          # 5 Jahre Preishistorie
     "sektor_delta_idio_min": 0.05,    # ab 5% Underperformance = idiosynkratisch
     "sektor_delta_extrem": 0.40,      # ab 40% Underperformance = Strukturproblem-Warnung
-    "conviction_gewicht": 0.333,
+    "conviction_gewicht": 0.25,
 }
 
 _INVESTIERBARE_URSACHEN = {

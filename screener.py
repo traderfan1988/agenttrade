@@ -10,6 +10,7 @@ from typing import List
 import agenten.agent1_bewertung as a1
 import agenten.agent2_drawdown as a2
 import agenten.agent3_dip as a3
+import agenten.agent4_wachstum as a4
 from kern import version
 from kern.typen import Befund, Zustand
 
@@ -20,29 +21,34 @@ def _gesamtconviction(
     befunde_a1: List[Befund],
     befunde_a2: List[Befund],
     befunde_a3: List[Befund],
+    befunde_a4: List[Befund],
 ) -> float:
     g1 = a1.SCHWELLEN["conviction_gewicht"]
     g2 = a2.SCHWELLEN["conviction_gewicht"]
     g3 = a3.SCHWELLEN["conviction_gewicht"]
-    gesamt_g = g1 + g2 + g3
+    g4 = a4.SCHWELLEN["conviction_gewicht"]
+    gesamt_g = g1 + g2 + g3 + g4
     c1 = a1.conviction(befunde_a1)
     c2 = a2.conviction(befunde_a2)
     c3 = a3.conviction(befunde_a3)
-    return round((g1 * c1 + g2 * c2 + g3 * c3) / gesamt_g, 1)
+    c4 = a4.conviction(befunde_a4)
+    return round((g1 * c1 + g2 * c2 + g3 * c3 + g4 * c4) / gesamt_g, 1)
 
 
 def screene(ticker: str) -> dict:
     befunde_a1 = a1.analyse(ticker)
     befunde_a2 = a2.analyse(ticker)
     befunde_a3 = a3.analyse(ticker)
+    befunde_a4 = a4.analyse(ticker)
     return {
         "ticker": ticker,
         "datum": str(date.today()),
         "version": version.versionstempel(),
-        "conviction": _gesamtconviction(befunde_a1, befunde_a2, befunde_a3),
+        "conviction": _gesamtconviction(befunde_a1, befunde_a2, befunde_a3, befunde_a4),
         "agent1": [b.as_dict() for b in befunde_a1],
         "agent2": [b.as_dict() for b in befunde_a2],
         "agent3": [b.as_dict() for b in befunde_a3],
+        "agent4": [b.as_dict() for b in befunde_a4],
     }
 
 
@@ -65,6 +71,7 @@ def zeige_ergebnis(e: dict) -> None:
     _zeige_befunde("Agent 1 – Bewertung", e["agent1"])
     _zeige_befunde("Agent 2 – Drawdown", e["agent2"])
     _zeige_befunde("Agent 3 – Dip-Diagnose", e.get("agent3", []))
+    _zeige_befunde("Agent 4 – Wachstum", e.get("agent4", []))
 
 
 def speichere(e: dict) -> None:

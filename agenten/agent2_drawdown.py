@@ -21,7 +21,7 @@ SCHWELLEN = {
     "hist_vergleich_faktor": 0.70,      # Akt. DD ≥ 70% des Vorjahres-DD
     "dauer_min_tage": 20,               # mind. 20 Handelstage seit 52W-Hoch
     "dauer_max_tage": 400,              # > 400 Tage → mögliche Value Trap
-    "conviction_gewicht": 0.333,        # 3 Agenten → gleiches Gewicht
+    "conviction_gewicht": 0.25,         # 4 Agenten → gleiches Gewicht
 }
 
 
