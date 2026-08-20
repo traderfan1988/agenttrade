@@ -1,0 +1,14 @@
+# AgentTrade Watchlist
+# Ein Ticker pro Zeile, # = Kommentar, Leerzeilen werden ignoriert
+
+# ── Versicherung / Berkshire-Universum ─────────────────────────────────────
+MKL      # Markel – Berkshire-Klon
+BRK-B    # Berkshire Hathaway B
+
+# ── Qualitäts-Compounder ───────────────────────────────────────────────────
+MSFT     # Microsoft
+GOOGL    # Alphabet
+NVR      # NVR Inc.
+
+# ── Potenzielle Dips ───────────────────────────────────────────────────────
+AAPL     # Apple
