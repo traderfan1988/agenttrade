@@ -173,8 +173,13 @@ def analyse(ticker: str) -> List[Befund]:
         return [befund_unbestimmt(lbl, f"Datenabruf: {exc}") for _ in range(4)]
 
     market_cap = info.get("marketCap")
-    div_yield = info.get("dividendYield")
     fcf = info.get("freeCashflow")
+
+    # yfinance 1.2.0: dividendYield kommt als Dezimalbruch (0.0075 = 0.75%).
+    # Heuristik: Werte > 0.5 sind bereits Prozent (z.B. 0.75 = 0.75%) → durch 100 teilen.
+    div_yield = info.get("dividendYield")
+    if div_yield is not None and div_yield > 0.5:
+        div_yield = div_yield / 100
 
     buyback = _buyback_aus_cashflow(cashflow)
     dividenden_gezahlt = _dividenden_aus_cashflow(cashflow)

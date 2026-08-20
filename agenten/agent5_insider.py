@@ -38,6 +38,10 @@ def _insider_netto(transactions) -> Befund:
         return befund_unbestimmt(label, "Keine Insider-Transaktionsdaten")
 
     try:
+        # yfinance 1.2 liefert manchmal RangeIndex statt DatetimeIndex
+        if not isinstance(transactions.index, pd.DatetimeIndex):
+            return befund_unbestimmt(label, "Insider-Daten ohne Datumsindex – nicht auswertbar")
+
         cutoff = pd.Timestamp.now()
         if transactions.index.tz is not None:
             cutoff = cutoff.tz_localize(transactions.index.tz)
