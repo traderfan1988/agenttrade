@@ -6,8 +6,8 @@ Nach jeder Änderung an der Scoring-Logik:
 und den Hash in SCORING_COMMIT eintragen.
 Ohne diesen Stempel ist --review unbrauchbar (Scores mischen Logiken).
 """
-SCORING_COMMIT = "edbf919"
-SCORING_VERSION = "0.1.0"
+SCORING_COMMIT = "b2c4197"
+SCORING_VERSION = "0.2.0"
 
 
 def versionstempel() -> str:
