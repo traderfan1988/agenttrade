@@ -15,6 +15,7 @@ from agenten.agent2_drawdown import (
     _drawdown_aktuell,
     _fenster_am_hoch_verankert,
     _max_dd_im_fenster,
+    _tage_seit_hoch,
     analyse,
     conviction,
 )
@@ -85,6 +86,28 @@ class TestMaxDDImFenster:
         fenster = _serie([100, 90, 80])
         dd = _max_dd_im_fenster(fenster)
         assert dd >= 0
+
+
+class TestTagesSeitHoch:
+    def test_tage_korrekt_wenn_hoch_am_anfang(self):
+        s = _serie([100, 90, 80, 70])  # Hoch am Tag 0
+        assert _tage_seit_hoch(s) == 3
+
+    def test_tage_null_wenn_hoch_heute(self):
+        s = _serie([80, 90, 100])  # Hoch am letzten Tag
+        assert _tage_seit_hoch(s) == 0
+
+    def test_tage_mitte(self):
+        s = _serie([80, 100, 90, 85, 80])  # Hoch bei Index 1
+        assert _tage_seit_hoch(s) == 3
+
+    def test_leere_serie_gibt_none(self):
+        assert _tage_seit_hoch(pd.Series(dtype=float)) is None
+
+    def test_immer_nicht_negativ(self):
+        s = _serie([50, 80, 120, 90, 100])
+        tage = _tage_seit_hoch(s)
+        assert tage >= 0
 
 
 class TestKernregel_DrawdownGegenDrawdown:

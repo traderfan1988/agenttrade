@@ -11,7 +11,7 @@ SCHWELLEN = {
     "roe_min": 0.10,           # Return on Equity Untergrenze (10%)
     "fcf_yield_min": 0.03,     # Free Cashflow Rendite Untergrenze (3%)
     "schulden_eq_max": 1.5,    # Schulden/Eigenkapital Obergrenze
-    "conviction_gewicht": 0.5, # Gewicht im Gesamt-Conviction-Score
+    "conviction_gewicht": 0.333, # 3 Agenten → gleiches Gewicht
 }
 
 

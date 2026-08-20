@@ -19,7 +19,9 @@ SCHWELLEN = {
     "fenster_tage": 252,                # 52W = ~252 Handelstage
     "naehe_tief_faktor": 0.70,          # Akt. DD ≥ 70% des Max-DD im Fenster
     "hist_vergleich_faktor": 0.70,      # Akt. DD ≥ 70% des Vorjahres-DD
-    "conviction_gewicht": 0.5,          # Gewicht im Gesamt-Conviction-Score
+    "dauer_min_tage": 20,               # mind. 20 Handelstage seit 52W-Hoch
+    "dauer_max_tage": 400,              # > 400 Tage → mögliche Value Trap
+    "conviction_gewicht": 0.333,        # 3 Agenten → gleiches Gewicht
 }
 
 
@@ -38,7 +40,7 @@ def _max_dd_im_fenster(fenster: pd.Series) -> Optional[float]:
     """Maximaler historischer Drawdown im Fenster, verankert am ersten Wert (Hoch).
 
     Fenster startet am 52W-Hoch → erster Wert ist das Hoch.
-    Kein Rendite-Bias: wir messen nur Tiefe des Rückgangs.
+    Kein Rendite-Bias: wir messen nur Tiefe des Rückgangs vom Hoch.
     """
     if len(fenster) < 2:
         return None
@@ -55,6 +57,15 @@ def _fenster_am_hoch_verankert(preise: pd.Series) -> pd.Series:
         return preise
     hoch_idx = preise.idxmax()
     return preise.loc[hoch_idx:]
+
+
+def _tage_seit_hoch(preise: pd.Series) -> Optional[int]:
+    """Anzahl Handelstage vom 52W-Hoch bis heute."""
+    if preise.empty:
+        return None
+    hoch_idx = preise.idxmax()
+    fenster = preise.loc[hoch_idx:]
+    return len(fenster) - 1  # -1: Hoch-Tag selbst nicht mitzählen
 
 
 def _befund_drawdown_aktuell(dd: Optional[float]) -> Befund:
@@ -119,8 +130,38 @@ def _befund_hist_vergleich(hist_dd: Optional[float], akt_dd: Optional[float]) ->
     )
 
 
+def _befund_dauer(tage: Optional[int]) -> Befund:
+    """Drawdown-Dauer: etablierte Schwäche, kein flüchtiger Dip, kein Value Trap."""
+    label = "Drawdown-Dauer (Handelstage seit 52W-Hoch)"
+    if tage is None:
+        return befund_unbestimmt(label)
+    if tage < SCHWELLEN["dauer_min_tage"]:
+        return Befund(
+            label=label, wert=tage, bestanden=False,
+            zustand=Zustand.NICHT_PASSIERT,
+            details=(
+                f"Zu frisch: {tage} Tage (< {SCHWELLEN['dauer_min_tage']}) – "
+                "könnte kurzfristiger Dip sein"
+            ),
+        )
+    if tage > SCHWELLEN["dauer_max_tage"]:
+        return Befund(
+            label=label, wert=tage, bestanden=False,
+            zustand=Zustand.NICHT_PASSIERT,
+            details=(
+                f"Sehr lang: {tage} Tage (> {SCHWELLEN['dauer_max_tage']}) – "
+                "Value Trap prüfen"
+            ),
+        )
+    return Befund(
+        label=label, wert=tage, bestanden=True,
+        zustand=Zustand.PASSIERT,
+        details=f"Etabliert: {tage} Handelstage seit 52W-Hoch",
+    )
+
+
 def analyse(ticker: str) -> List[Befund]:
-    """Drawdown-Analyse mit am 52W-Hoch verankertem Fenster."""
+    """Drawdown-Analyse mit am 52W-Hoch verankertem Fenster. 4 Befunde."""
     try:
         daten = yf.download(ticker, period="2y", progress=False, auto_adjust=True)
     except Exception as exc:
@@ -130,7 +171,7 @@ def analyse(ticker: str) -> List[Befund]:
         return [befund_unbestimmt(f"Drawdown {ticker}", "Keine Kursdaten")]
 
     close = daten["Close"].dropna()
-    if isinstance(close.columns if hasattr(close, "columns") else None, pd.MultiIndex):
+    if hasattr(close, "columns"):
         close = close.iloc[:, 0]
     close = close.squeeze()
 
@@ -147,6 +188,9 @@ def analyse(ticker: str) -> List[Befund]:
     fenster_seit_hoch = _fenster_am_hoch_verankert(letzte_52w)
     max_dd = _max_dd_im_fenster(fenster_seit_hoch)
 
+    # Dauer seit 52W-Hoch
+    tage = _tage_seit_hoch(letzte_52w)
+
     # Vorjahr für historischen Vergleich
     prior = close.iloc[:-n] if len(close) > n else pd.Series(dtype=float)
     hist_dd: Optional[float] = None
@@ -158,6 +202,7 @@ def analyse(ticker: str) -> List[Befund]:
         _befund_drawdown_aktuell(akt_dd),
         _befund_naehe_tief(max_dd, akt_dd),
         _befund_hist_vergleich(hist_dd, akt_dd),
+        _befund_dauer(tage),
     ]
 
 
