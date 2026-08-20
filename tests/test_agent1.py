@@ -1,6 +1,7 @@
 """Tests für Agent 1 – Bewertung. Mocked, kein Netz-Zugriff."""
 from unittest.mock import MagicMock, patch
 
+import pandas as pd
 import pytest
 
 from kern.typen import Befund, Zustand
@@ -103,15 +104,31 @@ class TestSchulden:
         assert _schulden(1_000_000, 0).bestanden is None
 
 
+def _make_balance_sheet(stockholders_equity: float) -> pd.DataFrame:
+    dates = pd.date_range("2024-01-01", periods=1)
+    return pd.DataFrame({"Stockholders Equity": [stockholders_equity]}, index=dates).T
+
+
+def _make_cashflow(fcf: float) -> pd.DataFrame:
+    dates = pd.date_range("2024-01-01", periods=3)
+    return pd.DataFrame({"Free Cash Flow": [fcf, fcf * 0.9, fcf * 0.8]}, index=dates).T
+
+
 class TestAnalyse:
-    def _mock_ticker(self, info: dict):
+    def _mock_ticker(self, info: dict, balance_sheet=None, cashflow=None):
         mock = MagicMock()
         mock.info = info
+        mock.balance_sheet = balance_sheet if balance_sheet is not None else pd.DataFrame()
+        mock.cashflow = cashflow if cashflow is not None else pd.DataFrame()
         return mock
 
     def test_gibt_nur_befund_objekte_zurueck(self):
         with patch("agenten.agent1_bewertung.yf.Ticker") as mock_cls:
-            mock_cls.return_value = self._mock_ticker(VOLLSTAENDIGE_INFO)
+            mock_cls.return_value = self._mock_ticker(
+                VOLLSTAENDIGE_INFO,
+                _make_balance_sheet(10e9),
+                _make_cashflow(2e9),
+            )
             befunde = analyse("TEST")
         for b in befunde:
             assert isinstance(b, Befund), "CLAUDE.md: kein Agent gibt nackte Zahl zurück"
@@ -133,10 +150,61 @@ class TestAnalyse:
 
     def test_vollstaendige_daten_liefern_bewertungen(self):
         with patch("agenten.agent1_bewertung.yf.Ticker") as mock_cls:
-            mock_cls.return_value = self._mock_ticker(VOLLSTAENDIGE_INFO)
+            mock_cls.return_value = self._mock_ticker(
+                VOLLSTAENDIGE_INFO,
+                _make_balance_sheet(10e9),
+                _make_cashflow(2e9),
+            )
             befunde = analyse("TEST")
         bewertbar = [b for b in befunde if b.bestanden is not None]
         assert len(bewertbar) > 0
+
+    # --- Bug-Regressionstests (Bugs zuerst als Test, dann behoben) ---
+
+    def test_schulden_nicht_unbestimmt_wenn_equity_im_balance_sheet(self):
+        """Bug: totalStockholderEquity=None in info, aber Wert im balance_sheet vorhanden."""
+        info_ohne_equity = {
+            "trailingPE": 15.0,
+            "priceToBook": 1.5,
+            "returnOnEquity": 0.15,
+            "marketCap": 1_000_000_000_000,
+            "totalDebt": 50_000_000_000,
+            "totalStockholderEquity": None,  # ← Bug: info gibt None zurück
+        }
+        with patch("agenten.agent1_bewertung.yf.Ticker") as mock_cls:
+            mock_cls.return_value = self._mock_ticker(
+                info_ohne_equity,
+                _make_balance_sheet(200_000_000_000),  # ← steht aber im balance_sheet
+                _make_cashflow(5e9),
+            )
+            befunde = analyse("TEST")
+        schulden_b = next(b for b in befunde if "Schulden" in b.label)
+        assert schulden_b.bestanden is not None, (
+            "Schulden/EK muss bewertbar sein wenn Daten im balance_sheet vorliegen"
+        )
+
+    def test_fcf_rendite_aus_cashflow_statement_nicht_aus_info(self):
+        """Bug: info['freeCashflow'] liefert falschen Wert — cashflow Statement ist korrekt."""
+        info_falscher_fcf = {
+            "marketCap": 3_000_000_000_000,  # 3 Bio
+            "freeCashflow": 1_000_000_000,    # ← falsch: 1 Mrd statt 70 Mrd
+        }
+        korrekter_fcf = 70_000_000_000  # ← cashflow Statement: 70 Mrd
+        with patch("agenten.agent1_bewertung.yf.Ticker") as mock_cls:
+            mock_cls.return_value = self._mock_ticker(
+                info_falscher_fcf,
+                pd.DataFrame(),
+                _make_cashflow(korrekter_fcf),
+            )
+            befunde = analyse("TEST")
+        fcf_b = next(b for b in befunde if "FCF" in b.label)
+        # Yield aus cashflow: 70B / 3000B ≈ 2.33% ≥ Schwelle 3%? Knapp drunter → False
+        # Yield aus info (falsch): 1B / 3000B = 0.033% → auch False, aber aus falschen Daten
+        # Was wir prüfen: wert muss ~2.33% sein, nicht ~0.033%
+        assert fcf_b.wert is not None
+        assert fcf_b.wert > 0.02, (
+            f"FCF-Rendite muss aus cashflow Statement kommen (erwartet ~2.3%, bekommen {fcf_b.wert:.4f})"
+        )
 
 
 class TestConviction:

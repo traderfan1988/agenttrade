@@ -87,22 +87,55 @@ def _schulden(total_debt: Optional[float], total_equity: Optional[float]) -> Bef
     )
 
 
+def _equity_aus_balance_sheet(bs) -> Optional[float]:
+    """Eigenkapital aus balance_sheet falls info['totalStockholderEquity'] None liefert."""
+    if bs is None or (hasattr(bs, "empty") and bs.empty):
+        return None
+    for feld in ("Stockholders Equity", "Common Stock Equity"):
+        try:
+            serie = bs.loc[feld].dropna()
+            if not serie.empty:
+                return float(serie.iloc[0])
+        except KeyError:
+            continue
+    return None
+
+
+def _fcf_aus_cashflow(cf) -> Optional[float]:
+    """FCF aus Cashflow Statement (zuverlässiger als info['freeCashflow'])."""
+    if cf is None or (hasattr(cf, "empty") and cf.empty):
+        return None
+    try:
+        serie = cf.loc["Free Cash Flow"].dropna()
+        if not serie.empty:
+            return float(serie.iloc[0])
+    except KeyError:
+        pass
+    return None
+
+
 def analyse(ticker: str) -> List[Befund]:
     """Fundamentale Bewertungsanalyse. Gibt immer Befund-Objekte zurück."""
-    info: dict = {}
     try:
         t = yf.Ticker(ticker)
         info = t.info or {}
+        balance_sheet = t.balance_sheet
+        cashflow = t.cashflow
     except Exception as exc:
-        label = f"Bewertung {ticker}"
-        return [befund_unbestimmt(label, f"Datenabruf fehlgeschlagen: {exc}")]
+        return [befund_unbestimmt(f"Bewertung {ticker}", f"Datenabruf: {exc}")]
+
+    # Eigenkapital: info-Feld ist in neuerer yfinance-Version oft None → Balance Sheet
+    equity = info.get("totalStockholderEquity") or _equity_aus_balance_sheet(balance_sheet)
+
+    # FCF: info-Feld kann falsche Werte liefern → Cashflow Statement bevorzugen
+    fcf = _fcf_aus_cashflow(cashflow) or info.get("freeCashflow")
 
     return [
         _kgv(info.get("trailingPE")),
         _kbv(info.get("priceToBook")),
         _roe(info.get("returnOnEquity")),
-        _fcf_yield(info.get("freeCashflow"), info.get("marketCap")),
-        _schulden(info.get("totalDebt"), info.get("totalStockholderEquity")),
+        _fcf_yield(fcf, info.get("marketCap")),
+        _schulden(info.get("totalDebt"), equity),
     ]
 
 
