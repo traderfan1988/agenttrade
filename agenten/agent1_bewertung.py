@@ -28,7 +28,7 @@ SCHWELLEN = {
     "roce_min": 0.08,               # EBIT/Capital Employed ≥ 8%
     "zinsdeckung_min": 3.0,         # EBIT/Zinsaufwand ≥ 3×
     "schulden_eq_max": 1.5,         # Schulden/Eigenkapital Obergrenze
-    "conviction_gewicht": 0.20,     # 5 Agenten → gleiches Gewicht
+    "conviction_gewicht": 0.125,    # 8 Agenten → gleiches Gewicht
     "finanz_sektoren": ["Financial Services", "Utilities", "Real Estate"],
 }
 

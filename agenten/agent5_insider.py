@@ -21,7 +21,7 @@ SCHWELLEN = {
     "analyst_buy_ratio_min": 0.50,        # ≥ 50% Buy/StrongBuy-Empfehlungen
     "institutionell_min": 0.30,           # ≥ 30% institutionell gehalten
     "institutionell_max": 0.98,           # ≤ 98% – Streubesitz muss vorhanden sein
-    "conviction_gewicht": 0.20,           # 5 Agenten → gleiches Gewicht
+    "conviction_gewicht": 0.125,          # 8 Agenten → gleiches Gewicht
 }
 
 

@@ -24,7 +24,7 @@ SCHWELLEN = {
     "gewinn_cagr_min": 0.05,        # Net Income CAGR 3J ≥ 5%
     "fcf_cagr_min": 0.03,           # FCF CAGR 3J ≥ 3%
     "mindest_jahre": 3,             # mind. 3 Wachstumsjahre = 4 Datenpunkte nötig
-    "conviction_gewicht": 0.20,     # 5 Agenten → gleiches Gewicht
+    "conviction_gewicht": 0.125,    # 8 Agenten → gleiches Gewicht
 }
 
 
